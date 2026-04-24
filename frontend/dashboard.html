@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - AI Medical Assistant</title>
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    />
+</head>
+
+<body class="bg-light">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="dashboard.html">
+                AI Medical Assistant
+            </a>
+
+            <div class="ms-auto d-flex gap-2">
+                <a href="dashboard.html" class="btn btn-light btn-sm">Dashboard</a>
+                <a href="health_profile.html" class="btn btn-outline-light btn-sm">Profile</a>
+                <a href="history.html" class="btn btn-outline-light btn-sm">History</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="container py-5">
+
+        <!-- Welcome Card -->
+        <div class="card shadow-sm border-0 rounded-4 mb-4">
+            <div class="card-body p-4">
+                <h2 class="text-primary">Welcome to your Dashboard</h2>
+                <p class="text-muted mb-0">
+                    Manage your profile, analyze symptoms, and view your medical history.
+                </p>
+            </div>
+        </div>
+
+        <!-- Cards Row -->
+        <div class="row g-4">
+
+            <!-- Health Profile -->
+            <div class="col-md-4">
+                <div class="card shadow border-0 rounded-4 h-100">
+                    <div class="card-body p-4">
+                        <h4 class="text-success">Health Profile</h4>
+                        <p class="text-muted">
+                            Complete or update your personal medical profile.
+                        </p>
+                        <a href="health_profile.html" class="btn btn-success">
+                            Open Health Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Analyzer -->
+            <div class="col-md-4">
+                <div class="card shadow border-0 rounded-4 h-100">
+                    <div class="card-body p-4">
+                        <h4 class="text-primary">AI Symptom Analyzer</h4>
+
+                        <p class="text-muted" id="analyzerMessage">
+                            Checking profile status...
+                        </p>
+
+                        <a href="index.html" class="btn btn-primary" id="analyzerBtn">
+                            Open Analyzer
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prediction History -->
+            <div class="col-md-4">
+                <div class="card shadow border-0 rounded-4 h-100">
+                    <div class="card-body p-4">
+                        <h4 class="text-info">Prediction History</h4>
+                        <p class="text-muted">
+                            View your previous AI analyses and results.
+                        </p>
+                        <a href="history.html" class="btn btn-info text-white">
+                            Open History
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Alert Section -->
+        <div class="mt-4" id="profileAlert"></div>
+
+    </div>
+
+    <!-- Script -->
+    <script>
+        fetch("/senior_project/backend/check_profile.php")
+            .then(response => response.json())
+            .then(data => {
+
+                const analyzerBtn = document.getElementById("analyzerBtn");
+                const analyzerMessage = document.getElementById("analyzerMessage");
+                const profileAlert = document.getElementById("profileAlert");
+
+                if (data.has_profile) {
+
+                    analyzerMessage.textContent =
+                        "Your health profile is completed. You can use the AI analyzer.";
+
+                    profileAlert.innerHTML = `
+                        <div class="alert alert-success">
+                            Your health profile is completed. Full system access is enabled.
+                        </div>
+                    `;
+
+                } else {
+
+                    analyzerMessage.textContent =
+                        "You must complete your health profile before using the AI analyzer.";
+
+                    // Disable Analyzer button
+                    analyzerBtn.classList.add("disabled");
+                    analyzerBtn.setAttribute("aria-disabled", "true");
+
+                    analyzerBtn.addEventListener("click", function(event) {
+                        event.preventDefault();
+                    });
+
+                    profileAlert.innerHTML = `
+                        <div class="alert alert-warning">
+                            Your health profile is not completed yet.
+                            <br><br>
+                            <a href="health_profile.html" class="btn btn-warning btn-sm">
+                                Complete Health Profile
+                            </a>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById("profileAlert").innerHTML = `
+                    <div class="alert alert-danger">
+                        Error checking profile status: ${error}
+                    </div>
+                `;
+            });
+    </script>
+
+</body>
+</html>
