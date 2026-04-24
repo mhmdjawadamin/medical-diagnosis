@@ -17,7 +17,7 @@ senior_project/
 `-- frontend/     # HTML pages
 ```
 
-## Main Features
+## Features
 
 - User registration and login
 - Health profile creation
