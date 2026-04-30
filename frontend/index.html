@@ -4,31 +4,43 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI Medical Assistant</title>
+
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
   </head>
+
   <body class="bg-light">
+    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
       <div class="container">
-        <a class="navbar-brand fw-bold" href="dashboard.html"
-          >AI Medical Assistant</a
-        >
-        <div class="ms-auto">
-          <a href="dashboard.html" class="btn btn-light me-2">Dashboard</a>
-          <a href="health_profile.html" class="btn btn-outline-light"
-            >Health Profile</a
+        <a class="navbar-brand fw-bold" href="dashboard.html">
+          AI Medical Assistant
+        </a>
+
+        <div class="ms-auto d-flex gap-2">
+          <a href="dashboard.html" class="btn btn-light btn-sm">Dashboard</a>
+          <a href="health_profile.html" class="btn btn-outline-light btn-sm"
+            >Profile</a
           >
+          <a href="history.html" class="btn btn-outline-light btn-sm"
+            >History</a
+          >
+          <button onclick="logout()" class="btn btn-danger btn-sm">
+            Logout
+          </button>
         </div>
       </div>
     </nav>
 
+    <!-- Main Content -->
     <div class="container py-5">
       <div id="accessWarning"></div>
 
       <div class="row justify-content-center">
         <div class="col-md-8">
+          <!-- Input Card -->
           <div class="card shadow-lg border-0 rounded-4">
             <div class="card-body p-4">
               <h1 class="text-center mb-4 text-primary">
@@ -36,9 +48,10 @@
               </h1>
 
               <div class="mb-3">
-                <label for="symptoms" class="form-label fw-bold"
-                  >Enter your symptoms</label
-                >
+                <label for="symptoms" class="form-label fw-bold">
+                  Enter your symptoms
+                </label>
+
                 <textarea
                   id="symptoms"
                   class="form-control"
@@ -59,9 +72,11 @@
             </div>
           </div>
 
+          <!-- Result Card -->
           <div class="card shadow-sm border-0 rounded-4 mt-4">
             <div class="card-body p-4">
               <h2 class="mb-3 text-success">Result</h2>
+
               <div id="output">
                 <p class="text-muted">Your analysis result will appear here.</p>
               </div>
@@ -71,9 +86,73 @@
       </div>
     </div>
 
+    <!-- Floating Chatbot Button -->
+    <button
+      id="chatbotToggle"
+      class="btn btn-primary rounded-circle shadow"
+      style="
+        position: fixed;
+        bottom: 25px;
+        right: 25px;
+        width: 60px;
+        height: 60px;
+        z-index: 1000;
+      "
+    >
+      💬
+    </button>
+
+    <!-- Chatbot Box -->
+    <div
+      id="chatbotBox"
+      class="card shadow-lg border-0 rounded-4"
+      style="
+        display: none;
+        position: fixed;
+        bottom: 95px;
+        right: 25px;
+        width: 350px;
+        z-index: 1000;
+      "
+    >
+      <div class="card-header bg-primary text-white rounded-top-4">
+        <strong>Medical Assistant Chatbot</strong>
+      </div>
+
+      <div
+        id="chatMessages"
+        class="card-body"
+        style="height: 300px; overflow-y: auto"
+      >
+        <div class="alert alert-info">
+          Hello! I can explain your prediction, confidence score, risk level,
+          urgent guidance, and recommended doctor.
+          <br /><br />
+          <strong>Disclaimer:</strong> This system does not replace a real
+          doctor.
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <div class="input-group">
+          <input
+            type="text"
+            id="chatInput"
+            class="form-control"
+            placeholder="Ask me something..."
+          />
+          <button class="btn btn-primary" onclick="sendChatMessage()">
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script>
       let canUseAnalyzer = false;
+      let lastResult = null;
 
+      // Check if user completed health profile
       fetch("/senior_project/backend/check_profile.php")
         .then((response) => response.json())
         .then((data) => {
@@ -91,43 +170,43 @@
             symptomsBox.disabled = true;
 
             accessWarning.innerHTML = `
-                        <div class="alert alert-danger shadow-sm">
-                            <h4 class="alert-heading">Access Denied</h4>
-                            <p class="mb-2">
-                                You cannot use the AI Symptom Analyzer until you complete your health profile.
-                            </p>
-                            <hr>
-                            <a href="health_profile.html" class="btn btn-warning">Complete Health Profile</a>
-                        </div>
-                    `;
+              <div class="alert alert-danger shadow-sm">
+                <h4 class="alert-heading">Access Denied</h4>
+                <p>
+                  You cannot use the AI Symptom Analyzer until you complete your health profile.
+                </p>
+                <a href="health_profile.html" class="btn btn-warning">
+                  Complete Health Profile
+                </a>
+              </div>
+            `;
 
             output.innerHTML = `
-                        <div class="alert alert-warning">
-                            The analyzer is locked until your health profile is completed.
-                        </div>
-                    `;
+              <div class="alert alert-warning">
+                The analyzer is locked until your health profile is completed.
+              </div>
+            `;
           }
         })
         .catch((error) => {
           document.getElementById("accessWarning").innerHTML = `
-                    <div class="alert alert-danger">
-                        Error checking profile status: ${error}
-                    </div>
-                `;
+            <div class="alert alert-danger">
+              Error checking profile status: ${error}
+            </div>
+          `;
         });
 
       function analyzeSymptoms() {
         if (!canUseAnalyzer) {
           document.getElementById("accessWarning").innerHTML = `
-                    <div class="alert alert-danger shadow-sm">
-                        <h4 class="alert-heading">Access Denied</h4>
-                        <p class="mb-2">
-                            Please complete your health profile before using the AI Symptom Analyzer.
-                        </p>
-                        <hr>
-                        <a href="health_profile.html" class="btn btn-warning">Complete Health Profile</a>
-                    </div>
-                `;
+            <div class="alert alert-danger shadow-sm">
+              <h4 class="alert-heading">Access Denied</h4>
+              <p>Please complete your health profile before using the AI Symptom Analyzer.</p>
+              <a href="health_profile.html" class="btn btn-warning">
+                Complete Health Profile
+              </a>
+            </div>
+          `;
           return;
         }
 
@@ -135,7 +214,11 @@
         let output = document.getElementById("output");
 
         if (text.trim() === "") {
-          output.innerHTML = `<div class="alert alert-danger">Please enter your symptoms first.</div>`;
+          output.innerHTML = `
+            <div class="alert alert-danger">
+              Please enter your symptoms first.
+            </div>
+          `;
           return;
         }
 
@@ -150,81 +233,234 @@
         })
           .then((response) => response.json())
           .then((data) => {
+            lastResult = data;
+
             if (data.error) {
-              output.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+              output.innerHTML = `
+                <div class="alert alert-danger">
+                  ${data.error}
+                </div>
+              `;
               return;
             }
 
-            let severityClass = "secondary";
-            if (data.severity_level === "High") severityClass = "danger";
-            else if (data.severity_level === "Medium")
+            let severityClass = "success";
+
+            if (data.severity_level === "High") {
+              severityClass = "danger";
+            } else if (data.severity_level === "Medium") {
               severityClass = "warning";
-            else if (data.severity_level === "Low") severityClass = "success";
+            }
+
+            let topPredictionsHTML = "";
+
+            if (data.top_predictions && data.top_predictions.length > 0) {
+              data.top_predictions.forEach((item, index) => {
+                topPredictionsHTML += `
+                  <div class="d-flex justify-content-between border-bottom py-2">
+                    <span>${index + 1}. ${item.disease}</span>
+                    <strong>${Math.round(item.confidence * 100)}%</strong>
+                  </div>
+                `;
+              });
+            } else {
+              topPredictionsHTML = `
+                <p class="text-muted mb-0">No additional predictions available.</p>
+              `;
+            }
 
             output.innerHTML = `
-<div class="card shadow border-0 rounded-4 p-4">
+              <div class="card shadow border-0 rounded-4 p-4">
+                <h3 class="text-primary mb-4">
+                  AI Medical Analysis Result
+                </h3>
 
-    <h3 class="text-primary mb-4">Diagnosis Result</h3>
-
-    <div class="row g-3">
-
-        <div class="col-md-6">
-            <div class="p-3 bg-light rounded-3">
-                <h6 class="text-muted">Possible Disease</h6>
-                <h5 class="fw-bold text-primary">${data.predicted_disease}</h5>
-            </div>
-        </div>
-
-        <div class="col-md-6">
-            <div class="p-3 bg-light rounded-3">
-                <h6 class="text-muted">Confidence</h6>
-                <div class="progress">
-                    <div class="progress-bar bg-success" style="width: ${data.confidence_score * 100}%">
-                        ${data.confidence_score * 100}%
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="p-3 bg-light rounded-3">
+                      <h6 class="text-muted">Predicted Disease</h6>
+                      <h5 class="fw-bold text-primary">
+                        ${data.predicted_disease}
+                      </h5>
                     </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="p-3 bg-light rounded-3">
+                      <h6 class="text-muted">Confidence Score</h6>
+                      <div class="progress">
+                        <div
+                          class="progress-bar bg-success"
+                          style="width: ${data.confidence_score * 100}%"
+                        >
+                          ${Math.round(data.confidence_score * 100)}%
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="p-3 bg-light rounded-3">
+                      <h6 class="text-muted">Severity Level</h6>
+                      <span class="badge bg-${severityClass} fs-6">
+                        ${data.severity_level}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="p-3 bg-light rounded-3">
+                      <h6 class="text-muted">Duration</h6>
+                      <p class="mb-0">
+                        ${data.duration_days} day(s)
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="col-12">
+                    <div class="p-3 bg-light rounded-3">
+                      <h6 class="text-muted">Detected Symptoms</h6>
+                      <p class="mb-0">
+                        ${data.detected_symptoms.join(", ")}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="col-12">
+                    <div class="p-3 bg-light rounded-3">
+                      <h6 class="text-muted">Recommended Doctor</h6>
+                      <p class="fw-bold text-success mb-0">
+                        ${data.recommended_doctor}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="col-12">
+                    <div class="p-3 bg-light rounded-3">
+                      <h6 class="text-muted">Top Possible Diseases</h6>
+                      ${topPredictionsHTML}
+                    </div>
+                  </div>
+
+                  <div class="col-12">
+                    <h5 class="text-danger mt-3">
+                      Urgent Medical Guidance
+                    </h5>
+
+                    <div class="alert alert-danger">
+                      ${data.urgent_action}
+                    </div>
+                  </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="col-md-6">
-            <div class="p-3 bg-light rounded-3">
-                <h6 class="text-muted">Severity</h6>
-                <span class="badge bg-${severityClass} fs-6">${data.severity_level}</span>
-            </div>
-        </div>
-
-        <div class="col-md-6">
-            <div class="p-3 bg-light rounded-3">
-                <h6 class="text-muted">Duration</h6>
-                <p class="mb-0">${data.duration_days} day(s)</p>
-            </div>
-        </div>
-
-        <div class="col-12">
-            <div class="p-3 bg-light rounded-3">
-                <h6 class="text-muted">Detected Symptoms</h6>
-                <p class="mb-0">${data.detected_symptoms.join(", ")}</p>
-            </div>
-        </div>
-
-        <div class="col-12">
-            <div class="p-3 bg-light rounded-3">
-                <h6 class="text-muted">Recommended Doctor</h6>
-                <p class="fw-bold text-success">${data.recommended_doctor}</p>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="alert alert-warning mt-4">
-        <strong>Disclaimer:</strong> This system does not replace a real doctor.
-    </div>
-
-</div>
-`;
+                <div class="alert alert-warning mt-4 mb-0">
+                  <strong>Medical Disclaimer:</strong>
+                  This system provides AI-based predictions only and does not replace a real doctor.
+                </div>
+              </div>
+            `;
           })
           .catch((error) => {
-            output.innerHTML = `<div class="alert alert-danger">Error: ${error}</div>`;
+            output.innerHTML = `
+              <div class="alert alert-danger">
+                Error: ${error}
+              </div>
+            `;
+          });
+      }
+
+      document
+        .getElementById("chatbotToggle")
+        .addEventListener("click", function () {
+          const box = document.getElementById("chatbotBox");
+          box.style.display = box.style.display === "none" ? "block" : "none";
+        });
+
+      function sendChatMessage() {
+        const input = document.getElementById("chatInput");
+        const messages = document.getElementById("chatMessages");
+        const userText = input.value.trim();
+
+        if (userText === "") return;
+
+        messages.innerHTML += `
+    <div class="text-end mb-2">
+      <span class="badge bg-primary p-2">${userText}</span>
+    </div>
+  `;
+
+        input.value = "";
+
+        fetch("/senior_project/backend/chatbot.php", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: userText,
+            latest_result: lastResult,
+          }),
+        })
+          .then((response) => response.text())
+          .then((data) => {
+            console.log("CHATBOT RAW RESPONSE:", data);
+
+            try {
+              let json = JSON.parse(data);
+
+              if (json.error) {
+                messages.innerHTML += `
+            <div class="text-start mb-2">
+              <span class="badge bg-danger p-2">${json.error}</span>
+            </div>
+          `;
+                return;
+              }
+
+              messages.innerHTML += `
+          <div class="text-start mb-2">
+            <span class="badge bg-light text-dark p-2 text-wrap d-inline-block" style="max-width: 280px;">
+              ${json.reply}
+            </span>
+          </div>
+        `;
+            } catch (e) {
+              messages.innerHTML += `
+          <div class="text-start mb-2">
+            <div class="alert alert-danger p-2">
+              <strong>Server returned HTML, not JSON:</strong>
+              <pre style="white-space: pre-wrap;">${data}</pre>
+            </div>
+          </div>
+        `;
+            }
+
+            messages.scrollTop = messages.scrollHeight;
+          })
+          .catch((error) => {
+            messages.innerHTML += `
+        <div class="text-start mb-2">
+          <span class="badge bg-danger p-2">Error: ${error}</span>
+        </div>
+      `;
+          });
+      }
+      document
+        .getElementById("chatInput")
+        .addEventListener("keydown", function (event) {
+          if (event.key === "Enter") {
+            sendChatMessage();
+          }
+        });
+
+      function logout() {
+        fetch("/senior_project/backend/logout.php")
+          .then((response) => response.json())
+          .then((data) => {
+            window.location.href = "home.html";
+          })
+          .catch((error) => {
+            alert("Logout failed: " + error);
           });
       }
     </script>
