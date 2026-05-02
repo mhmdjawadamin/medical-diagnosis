@@ -23,7 +23,11 @@ def analyze():
 
         user_text = data["text"]
 
-        result = analyze_text(user_text)
+        # NEW: receive patient health profile from PHP
+        health_profile = data.get("health_profile")
+
+        # NEW: send text + health profile to main AI pipeline
+        result = analyze_text(user_text, health_profile)
 
         return jsonify(result)
 
@@ -37,17 +41,23 @@ def chatbot():
         data = request.get_json()
 
         if not data or "message" not in data:
-            return jsonify({"error": "Missing 'message' field"}), 400
+            return jsonify({
+                "error": "Missing 'message' field"
+            }), 400
 
         message = data["message"]
         latest_result = data.get("latest_result")
 
         reply = get_chatbot_response(message, latest_result)
 
-        return jsonify({"reply": reply})
+        return jsonify({
+            "reply": reply
+        })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": str(e)
+        }), 500
 
 
 if __name__ == "__main__":
