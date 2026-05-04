@@ -80,6 +80,11 @@
               <div id="output">
                 <p class="text-muted">Your analysis result will appear here.</p>
               </div>
+              <div class="text-end mt-3">
+                <button class="btn btn-success" onclick="downloadReport()">
+                  Download Medical Report (PDF)
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -478,7 +483,37 @@
             sendChatMessage();
           }
         });
+      function downloadReport() {
+        if (!lastResult) {
+          alert("No analysis available. Please analyze symptoms first.");
+          return;
+        }
 
+        fetch("/senior_project/backend/generate_report.php", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(lastResult),
+        })
+          .then((response) => response.blob())
+          .then((blob) => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+
+            a.href = url;
+            a.download = "medical_report.pdf";
+            document.body.appendChild(a);
+            a.click();
+
+            a.remove();
+            window.URL.revokeObjectURL(url);
+          })
+          .catch((error) => {
+            alert("Failed to generate report.");
+            console.error(error);
+          });
+      }
       function logout() {
         fetch("/senior_project/backend/logout.php")
           .then((response) => response.json())
