@@ -3,161 +3,140 @@ def get_chatbot_response(message, latest_result=None):
 
     disclaimer = " This system does not replace a real doctor."
 
-    # Detect if user is describing multiple symptoms directly to chatbot
-    symptom_keywords = [
-        "fever", "headache", "cough", "fatigue", "body pain", "sore throat",
-        "chest pain", "shortness of breath", "vomiting", "diarrhea", "nausea",
-        "dizziness", "runny nose", "sneezing", "stomach pain", "rash",
-        "itching", "joint pain", "back pain", "burning urination",
-        "fast heartbeat", "palpitations", "hard to breathe"
-    ]
-
-    detected_in_message = [s for s in symptom_keywords if s in message]
-
-    if len(detected_in_message) >= 2 and latest_result is None:
-        return (
-            "You mentioned multiple symptoms. For a more accurate result including disease prediction, "
-            "risk level, confidence score, and doctor recommendation, please use the AI Symptom Analyzer first."
-            + disclaimer
-        )
-
-    # Emergency direct warning
-    emergency_keywords = [
-        "chest pain",
-        "cannot breathe",
-        "can't breathe",
-        "difficulty breathing",
-        "shortness of breath",
-        "fainting",
-        "loss of consciousness",
-        "heart attack",
-        "stroke"
-    ]
-
-    for keyword in emergency_keywords:
-        if keyword in message:
-            return (
-                "This may be an emergency warning sign. Please seek urgent medical care immediately, "
-                "especially if symptoms are severe, sudden, or getting worse."
-                + disclaimer
-            )
-
-    # General symptom advice before analysis
-    general_advice = {
-        "fever": "Fever may happen when the body is fighting an infection. Drink fluids, rest, and monitor your temperature. If it lasts more than 3 days or is very high, contact a doctor.",
-        "headache": "Headache may be caused by stress, dehydration, migraine, infection, or lack of sleep. If it is sudden, severe, or with blurred vision, seek medical care.",
-        "cough": "Cough may be caused by cold, flu, allergy, bronchitis, asthma, or infection. If it comes with chest pain or breathing difficulty, seek medical attention.",
-        "vomiting": "Vomiting may happen due to food poisoning, infection, migraine, or stomach problems. Drink small amounts of water. If it continues, contact a doctor.",
-        "diarrhea": "Diarrhea may be caused by infection, food poisoning, or digestive issues. Drink fluids to avoid dehydration. If it lasts more than 2 days, see a doctor.",
-        "rash": "A rash may be caused by allergy, irritation, infection, or skin disease. If it spreads quickly or comes with fever or swelling, see a doctor.",
-        "burning urination": "Burning urination may indicate urinary infection. Drink water and consult a doctor, especially if you also have fever or back pain.",
-        "dizziness": "Dizziness may happen due to dehydration, low blood pressure, migraine, vertigo, or other causes. If severe or with chest pain, seek medical care."
-    }
-
-    # If no analysis result yet
+    # -------------------------------
+    # If user has not analyzed yet
+    # -------------------------------
     if latest_result is None:
-        for symptom, advice in general_advice.items():
-            if symptom in message:
-                return (
-                    advice
-                    + " For a personalized prediction, please use the AI Symptom Analyzer."
-                    + disclaimer
-                )
+        symptom_keywords = [
+            "fever", "headache", "cough", "fatigue", "body pain", "sore throat",
+            "chest pain", "shortness of breath", "vomiting", "diarrhea", "nausea",
+            "dizziness", "runny nose", "sneezing", "stomach pain", "rash",
+            "itching", "joint pain", "back pain", "burning urination",
+            "fast heartbeat", "palpitations", "hard to breathe"
+        ]
 
-        if "hello" in message or "hi" in message:
+        detected_symptoms = [symptom for symptom in symptom_keywords if symptom in message]
+
+        if len(detected_symptoms) >= 2:
             return (
-                "Hello! I can answer general symptom questions, but for personalized prediction "
-                "please use the AI Symptom Analyzer first."
+                "You mentioned multiple symptoms. For a more accurate result, please use the AI Symptom Analyzer first. "
+                "It can detect symptoms, predict possible diseases, calculate risk level, and recommend a doctor."
                 + disclaimer
             )
 
-        if "symptom" in message:
+        if "fever" in message:
             return (
-                "You can enter symptoms such as fever, cough, headache, chest pain, shortness of breath, "
-                "vomiting, diarrhea, rash, dizziness, burning urination, or body pain in the analyzer."
+                "Fever may happen because of infection, flu, cold, or other causes. "
+                "Drink fluids, rest, and monitor your temperature. For personalized prediction, use the AI Symptom Analyzer."
+                + disclaimer
+            )
+
+        if "headache" in message:
+            return (
+                "Headache can be caused by dehydration, stress, migraine, infection, or lack of sleep. "
+                "If it is sudden, severe, or with vision problems, seek medical care."
+                + disclaimer
+            )
+
+        if "chest pain" in message or "hard to breathe" in message or "shortness of breath" in message:
+            return (
+                "Chest pain or breathing difficulty can be serious. If symptoms are severe or sudden, seek urgent medical care immediately."
+                + disclaimer
+            )
+
+        if "hi" in message or "hello" in message:
+            return (
+                "Hello! I can explain your AI result after you run the Symptom Analyzer. "
+                "You can ask me: why this disease, why this risk level, what doctor to visit, or what to do next."
                 + disclaimer
             )
 
         return (
-            "I can give general health guidance, but for accurate personalized analysis, "
-            "please run the AI Symptom Analyzer first."
+            "I can give general guidance, but for personalized medical analysis, please use the AI Symptom Analyzer first."
             + disclaimer
         )
 
-    # Use latest analyzer result
+    # -------------------------------
+    # Extract latest result fields
+    # -------------------------------
     disease = latest_result.get("predicted_disease", "unknown condition")
-    severity = latest_result.get("severity_level", "unknown")
     confidence = latest_result.get("confidence_score", 0)
-    doctor = latest_result.get("recommended_doctor", "General Physician")
+    severity = latest_result.get("severity_level", "unknown")
+    severity_score = latest_result.get("severity_score", "unknown")
     symptoms = latest_result.get("detected_symptoms", [])
+    contributing_symptoms = latest_result.get("contributing_symptoms", symptoms[:5])
     duration = latest_result.get("duration_days", 0)
+    doctor = latest_result.get("recommended_doctor", "General Physician")
     urgent_action = latest_result.get("urgent_action", "Please consult a doctor if symptoms continue.")
     top_predictions = latest_result.get("top_predictions", [])
     personalized_notes = latest_result.get("personalized_notes", [])
 
+    symptoms_text = ", ".join(symptoms) if symptoms else "no symptoms detected"
+    contributing_text = ", ".join(contributing_symptoms) if contributing_symptoms else symptoms_text
+
     profile_text = ""
     if personalized_notes:
-        profile_text = " Health profile notes: " + " ".join(personalized_notes)
+        profile_text = " Also, your health profile affected the risk because: " + " ".join(personalized_notes)
 
-    if "what do i have" in message or "disease" in message or "prediction" in message:
+    # -------------------------------
+    # Explain disease prediction
+    # -------------------------------
+    if (
+        "why this disease" in message
+        or "why did you predict" in message
+        or "why predicted" in message
+        or "why this prediction" in message
+        or "explain disease" in message
+    ):
         return (
-            f"The AI prediction suggests possible {disease} with {round(confidence * 100)}% confidence. "
-            f"Detected symptoms include: {', '.join(symptoms) if symptoms else 'none detected'}."
+            f"The system predicted {disease} because your detected symptoms include {contributing_text}. "
+            f"These symptoms matched patterns learned by the model for {disease}. "
+            f"The confidence score is {round(confidence * 100)}%, which means how strongly the detected symptoms matched that pattern."
+            + disclaimer
+        )
+
+    # -------------------------------
+    # Explain risk level
+    # -------------------------------
+    if (
+        "why risk" in message
+        or "why high" in message
+        or "why medium" in message
+        or "why low" in message
+        or "explain risk" in message
+        or "risk level" in message
+        or "severity" in message
+    ):
+        return (
+            f"Your risk level is {severity}. The severity score is {severity_score}. "
+            f"The risk is affected by detected symptoms, duration of {duration} day(s), warning symptoms, and health profile factors."
             + profile_text
             + disclaimer
         )
 
-    if "top" in message or "other disease" in message or "possible diseases" in message:
-        if top_predictions:
-            formatted = ", ".join(
-                [
-                    f"{item.get('disease')} ({round(item.get('confidence', 0) * 100)}%)"
-                    for item in top_predictions
-                ]
-            )
-            return f"The top possible diseases are: {formatted}." + disclaimer
-
-        return "No top prediction list is available yet. Please run the analysis first." + disclaimer
-
-    if "risk" in message or "danger" in message or "serious" in message or "severity" in message:
-        return (
-            f"Your risk level is {severity}. {urgent_action}"
-            + profile_text
-            + disclaimer
-        )
-
-    if "doctor" in message or "specialist" in message or "who should i visit" in message:
-        return (
-            f"Based on your result, the recommended specialist is: {doctor}."
-            + profile_text
-            + disclaimer
-        )
-
-    if "confidence" in message or "percentage" in message:
+    # -------------------------------
+    # Explain confidence
+    # -------------------------------
+    if "confidence" in message or "percentage" in message or "score mean" in message:
         return (
             f"The confidence score is {round(confidence * 100)}%. "
-            "It shows how strongly the model matched your symptoms to the predicted disease. "
-            "It is not a confirmed diagnosis."
+            "It means how strongly the model matched your symptoms with the predicted disease pattern. "
+            "A high confidence score does not mean a confirmed diagnosis."
             + disclaimer
         )
 
-    if "symptom" in message or "detected" in message:
-        return (
-            f"The detected symptoms are: {', '.join(symptoms) if symptoms else 'no symptoms detected'}."
-            + disclaimer
-        )
-
-    if "duration" in message or "days" in message or "how long" in message:
-        return (
-            f"The system detected symptom duration as {duration} day(s). "
-            "Longer duration can increase risk level."
-            + disclaimer
-        )
-
-    if "profile" in message or "health profile" in message or "my health" in message:
+    # -------------------------------
+    # Explain health profile effect
+    # -------------------------------
+    if (
+        "health profile" in message
+        or "my profile" in message
+        or "profile affect" in message
+        or "personalized" in message
+    ):
         if personalized_notes:
             return (
-                "Your health profile affected the analysis. "
+                "Your health profile affected the analysis in these ways: "
                 + " ".join(personalized_notes)
                 + disclaimer
             )
@@ -167,20 +146,83 @@ def get_chatbot_response(message, latest_result=None):
             + disclaimer
         )
 
-    if "what should i do" in message or "next step" in message or "help me" in message or "advice" in message:
-        return urgent_action + profile_text + disclaimer
+    # -------------------------------
+    # Explain top predictions
+    # -------------------------------
+    if "top" in message or "possible diseases" in message or "other diseases" in message:
+        if top_predictions:
+            formatted = ", ".join(
+                [
+                    f"{item.get('disease')} ({round(item.get('confidence', 0) * 100)}%)"
+                    for item in top_predictions
+                ]
+            )
+            return (
+                f"The top possible diseases are: {formatted}. "
+                "The first one is the strongest match, but the others are shown because symptoms can overlap between diseases."
+                + disclaimer
+            )
 
-    if "hello" in message or "hi" in message:
+        return "No top predictions are available yet. Please run the analyzer first." + disclaimer
+
+    # -------------------------------
+    # Doctor recommendation
+    # -------------------------------
+    if "doctor" in message or "specialist" in message or "who should i visit" in message:
         return (
-            "Hello! I can explain your AI result, risk level, confidence score, detected symptoms, "
-            "top possible diseases, health profile notes, recommended doctor, and next steps."
+            f"Based on the AI result, the recommended specialist is: {doctor}. "
+            f"This recommendation is linked to the predicted disease: {disease}."
             + disclaimer
         )
 
+    # -------------------------------
+    # What should I do?
+    # -------------------------------
+    if (
+        "what should i do" in message
+        or "next step" in message
+        or "help me" in message
+        or "advice" in message
+    ):
+        return urgent_action + profile_text + disclaimer
+
+    # -------------------------------
+    # What do I have?
+    # -------------------------------
+    if "what do i have" in message or "what is my disease" in message or "result" in message:
+        return (
+            f"The AI result suggests possible {disease} with {round(confidence * 100)}% confidence. "
+            f"Detected symptoms: {symptoms_text}. Recommended doctor: {doctor}."
+            + disclaimer
+        )
+
+    # -------------------------------
+    # Detected symptoms
+    # -------------------------------
+    if "symptom" in message or "detected" in message:
+        return (
+            f"The detected symptoms are: {symptoms_text}. "
+            f"The main contributing symptoms are: {contributing_text}."
+            + disclaimer
+        )
+
+    # -------------------------------
+    # Greeting
+    # -------------------------------
+    if "hello" in message or "hi" in message:
+        return (
+            "Hello! I can explain your AI result. You can ask: "
+            "'Why this disease?', 'Why is my risk high?', 'What does confidence mean?', "
+            "'How did my health profile affect this?', or 'What should I do next?'."
+            + disclaimer
+        )
+
+    # -------------------------------
+    # Default response
+    # -------------------------------
     return (
-        f"I can help explain your current result. Predicted disease: {disease}, "
-        f"risk level: {severity}, recommended doctor: {doctor}. "
-        "You can ask: 'Is it dangerous?', 'What doctor should I visit?', "
-        "'What do I have?', 'How did my health profile affect this?', or 'What should I do next?'."
+        f"I can explain your current result. Predicted disease: {disease}, "
+        f"risk level: {severity}, confidence: {round(confidence * 100)}%, recommended doctor: {doctor}. "
+        "Try asking: 'Why this disease?' or 'Why is my risk level high?'."
         + disclaimer
     )
