@@ -35,6 +35,16 @@ def recommend_doctor(disease):
     return doctor_map.get(disease, "General Physician")
 
 
+def merge_symptoms(symptoms_1, symptoms_2):
+    merged = []
+
+    for symptom in symptoms_1 + symptoms_2:
+        if symptom not in merged:
+            merged.append(symptom)
+
+    return merged
+
+
 def get_contributing_symptoms(symptoms):
     if not symptoms:
         return []
@@ -71,9 +81,7 @@ def personalize_risk(score, symptoms, disease, health_profile):
 
     if age >= 60:
         score += 2
-        personalized_notes.append(
-            "Risk increased because the patient is older than 60."
-        )
+        personalized_notes.append("Risk increased because the patient is older than 60.")
 
     if "asthma" in chronic or "respiratory" in chronic or "lung" in chronic:
         if "shortness of breath" in symptoms or "chest pain" in symptoms or "cough" in symptoms:
@@ -112,9 +120,7 @@ def personalize_risk(score, symptoms, disease, health_profile):
 
     if "heart" in family_history or "diabetes" in family_history:
         score += 1
-        personalized_notes.append(
-            "Family medical history may increase overall health risk."
-        )
+        personalized_notes.append("Family medical history may increase overall health risk.")
 
     if medications.strip() != "":
         personalized_notes.append(
@@ -170,15 +176,31 @@ def analyze_text(user_text, health_profile=None):
     clean_text = preprocess(user_text)
     corrected_text = correct_spelling(clean_text)
 
-    symptoms = extract_symptoms(corrected_text)
-    duration = extract_duration_days(corrected_text)
+    # Important fix:
+    # Extract from BOTH clean_text and corrected_text.
+    # This prevents TextBlob from removing/changing symptoms.
+    symptoms_from_clean = extract_symptoms(clean_text)
+    symptoms_from_corrected = extract_symptoms(corrected_text)
 
-    severity, score = detect_severity(corrected_text, symptoms)
+    symptoms = merge_symptoms(symptoms_from_clean, symptoms_from_corrected)
+
+    duration_clean = extract_duration_days(clean_text)
+    duration_corrected = extract_duration_days(corrected_text)
+    duration = max(duration_clean, duration_corrected)
+
+    severity, score = detect_severity(clean_text, symptoms)
 
     contributing_symptoms = get_contributing_symptoms(symptoms)
 
     if symptoms:
-        disease, confidence, top_predictions = predict_disease(symptoms)
+        model_result = predict_disease(
+            symptoms,
+            severity_level=severity
+        )
+
+        disease = model_result["disease"]
+        confidence = model_result["confidence"]
+        top_predictions = model_result["top_predictions"]
 
         score, personalized_notes = personalize_risk(
             score,
@@ -189,7 +211,10 @@ def analyze_text(user_text, health_profile=None):
 
         severity = adjust_severity_from_score(score)
 
-        doctor = recommend_doctor(disease)
+        doctor = model_result.get(
+            "specialist",
+            recommend_doctor(disease)
+        )
 
         urgent_action = get_urgent_action(
             disease,
@@ -235,18 +260,31 @@ if __name__ == "__main__":
         "family_history": "heart disease"
     }
 
-    text = "I have chest pain, cough, dizziness and hard to breathe for 3 days"
+    test_sentences = [
+        "I keep sneezing and I have sore throat and runny nose",
+        "I have high fever for 3 days and strong headache with body pain",
+        "my heart beats fast and i have pain in my chest and hard to breathe",
+        "I have burning when peeing and I pee a lot",
+        "I have vomiting and diarrhea with stomach pain",
+        "I have headache with blurry vision and nausea",
+        "I have chest pain, cough, dizziness and hard to breathe for 3 days"
+    ]
 
-    result = analyze_text(text, sample_profile)
+    for text in test_sentences:
+        result = analyze_text(text, sample_profile)
 
-    print("Original Text:", result["original_text"])
-    print("Detected Symptoms:", result["detected_symptoms"])
-    print("Contributing Symptoms:", result["contributing_symptoms"])
-    print("Predicted Disease:", result["predicted_disease"])
-    print("Confidence Score:", result["confidence_score"])
-    print("Top Predictions:", result["top_predictions"])
-    print("Severity Score:", result["severity_score"])
-    print("Severity Level:", result["severity_level"])
-    print("Recommended Doctor:", result["recommended_doctor"])
-    print("Urgent Action:", result["urgent_action"])
-    print("Personalized Notes:", result["personalized_notes"])
+        print("\n==============================")
+        print("Original Text:", result["original_text"])
+        print("Clean Text:", result["clean_text"])
+        print("Corrected Text:", result["corrected_text"])
+        print("Detected Symptoms:", result["detected_symptoms"])
+        print("Contributing Symptoms:", result["contributing_symptoms"])
+        print("Duration Days:", result["duration_days"])
+        print("Predicted Disease:", result["predicted_disease"])
+        print("Confidence Score:", result["confidence_score"])
+        print("Top Predictions:", result["top_predictions"])
+        print("Severity Score:", result["severity_score"])
+        print("Severity Level:", result["severity_level"])
+        print("Recommended Doctor:", result["recommended_doctor"])
+        print("Urgent Action:", result["urgent_action"])
+        print("Personalized Notes:", result["personalized_notes"])
